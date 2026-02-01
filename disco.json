@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "services": {
+    "web": {
+      "port": 5199
+    }
+  },
+  "images": {
+    "default": {
+      "dockerfile": "server/Dockerfile",
+      "context": "server/."
+    }
+  }
+}
