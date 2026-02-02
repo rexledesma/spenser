@@ -64,7 +64,7 @@ const status = {
           last_emptied: new Date().toISOString(),
           last_cleaned: new Date().toISOString(),
         };
-        await Deno.mkdir(this.path.split("/")[0], { recursive: true });
+        await Deno.mkdir("/data", { recursive: true });
         await Deno.writeTextFile(this.path, JSON.stringify(status));
         return status;
       } else {
