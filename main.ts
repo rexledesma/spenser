@@ -53,7 +53,7 @@ type Status = {
   last_cleaned: string;
 };
 const status = {
-  path: "data/status.json",
+  path: "/data/status.json",
   async read() {
     try {
       const data = await Deno.readTextFile(this.path);

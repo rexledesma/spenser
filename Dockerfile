@@ -10,4 +10,4 @@ COPY . .
 RUN deno install --entrypoint main.ts
 
 # Run the app
-CMD ["deno", "run", "--allow-net", "--allow-env", "--allow-read=data,static", "--allow-write=data", "main.ts"]
+CMD ["deno", "run", "--allow-net", "--allow-env", "--allow-read=/data,static", "--allow-write=/data", "main.ts"]
