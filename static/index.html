@@ -352,7 +352,7 @@
 
           const benchmark = this.benchmarks[verb];
           benchmark.push(
-            Math.max(24 * 5, hours + 24 - benchmark[0] - benchmark[1]),
+            Math.max(48, hours + 48 - benchmark[0] - benchmark[1]),
           );
           const barProgress =
             (100 * hours) / (benchmark[0] + benchmark[1] + benchmark[2]);
