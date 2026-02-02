@@ -353,7 +353,7 @@
           const benchmark = this.benchmarks[verb];
           benchmark.push(
             Math.max(
-              verb === "emptied" ? 12 : 12 * 30,
+              verb === "emptied" ? 12 * 3 : 12 * 30,
               hours + 24 - benchmark[0] - benchmark[1],
             ),
           );
