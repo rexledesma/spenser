@@ -2,10 +2,8 @@ import { Application, send } from "@oak/oak";
 import { Router, RouterContext } from "@oak/oak/router";
 import { Session } from "https://deno.land/x/oak_sessions@v9.0.0/mod.ts";
 import { OAuth2Client } from "@cmd-johnson/oauth2-client";
-import { resolve } from "https://deno.land/std@0.132.0/path/mod.ts";
 
 const port = 5353;
-const staticDir = resolve(Deno.cwd(), "static");
 
 const oauth2Client = new OAuth2Client({
   clientId: Deno.env.get("CLIENT_ID")!,
@@ -35,10 +33,14 @@ const cookies = {
     return JSON.parse(cookies);
   },
   async refreshTokens(ctx: Ctx, refreshToken: string) {
-    const newTokens = await oauth2Client.refreshToken.refresh(
-      refreshToken,
-    );
-    return await this.setTokens(ctx, newTokens);
+    try {
+      const newTokens = await oauth2Client.refreshToken.refresh(
+        refreshToken,
+      );
+      return await this.setTokens(ctx, newTokens);
+    } catch (error) {
+      return false;
+    }
   },
   async deleteTokens(ctx: Ctx) {
     await ctx.cookies.delete("tokens");
@@ -50,7 +52,7 @@ type Status = {
   last_cleaned: string;
 };
 const status = {
-  path: "./data/status.json",
+  path: "data/status.json",
   async read() {
     try {
       const data = await Deno.readTextFile(this.path);
@@ -61,6 +63,7 @@ const status = {
           last_emptied: new Date().toISOString(),
           last_cleaned: new Date().toISOString(),
         };
+        await Deno.mkdir(this.path.split("/")[0], { recursive: true });
         await Deno.writeTextFile(this.path, JSON.stringify(status));
         return status;
       } else {
@@ -79,33 +82,36 @@ type Me = {
 };
 type Ctx = RouterContext<any, any, any>;
 
-const guardGetTokens = async (ctx: Ctx) => {
+const getName = async (ctx: Ctx) => {
   const tokens = await cookies.getTokens(ctx);
   if (tokens === undefined) {
     ctx.response.status = 401;
     ctx.response.body = { message: "not logged in" };
     return false;
   }
-  return tokens;
-};
-
-const guardGetRecurse = async (ctx: Ctx, retries: number = 1) => {
-  const tokens = await guardGetTokens(ctx);
-  if (tokens === false) return false;
 
   const name = await fetchRcApi(tokens.accessToken);
   if (name === false) {
-    if (retries <= 0) {
+    await cookies.refreshTokens(ctx, tokens.refreshToken);
+
+    const newTokens = await cookies.getTokens(ctx);
+    if (newTokens === undefined) {
       await ctx.cookies.delete("tokens");
       ctx.response.status = 401;
       ctx.response.body = { message: "invalid session" };
       return false;
     }
-    await cookies.refreshTokens(ctx, tokens.refreshToken);
 
-    return guardGetRecurse(ctx, retries - 1);
+    const name = await fetchRcApi(newTokens.accessToken);
+    if (name === false) {
+      await ctx.cookies.delete("tokens");
+      ctx.response.status = 401;
+      ctx.response.body = { message: "invalid session" };
+      return false;
+    }
+
+    return name;
   }
-  return name;
 };
 
 const fetchRcApi = async (accessToken: string) => {
@@ -153,7 +159,7 @@ router.get("/api/callback", async (ctx) => {
 // api
 
 router.get("/api/me", async (ctx) => {
-  const me = await guardGetRecurse(ctx);
+  const me = await getName(ctx);
   if (me === false) return;
   ctx.response.body = me;
 });
@@ -163,7 +169,7 @@ router.get("/api/status", async (ctx) => {
 });
 
 router.post("/api/status/:key", async (ctx) => {
-  const me = await guardGetRecurse(ctx);
+  const me = await getName(ctx);
   if (me === false) return;
 
   const currentStatus = await status.read();
@@ -197,7 +203,7 @@ app.use(router.allowedMethods(), router.routes());
 app.use(async (ctx) => {
   if (!ctx.request.url.pathname.startsWith("/api")) {
     await send(ctx, ctx.request.url.pathname, {
-      root: staticDir,
+      root: "static",
       index: "index.html",
     });
   }
