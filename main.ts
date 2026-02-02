@@ -210,7 +210,7 @@ type AppState = {
   session: Session;
 };
 
-const app = new Application<AppState>();
+const app = new Application<AppState>({ proxy: true });
 app.use(Session.initMiddleware());
 app.use(router.allowedMethods(), router.routes());
 
