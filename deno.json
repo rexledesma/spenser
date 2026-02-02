@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@cmd-johnson/oauth2-client": "jsr:@cmd-johnson/oauth2-client@^2.0.0",
+    "@oak/oak": "jsr:@oak/oak@^17.2.0"
+  }
+}
